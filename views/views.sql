@@ -1,0 +1,8 @@
+--Supply Views
+
+CREATE OR REPLACE VIEW SHPROD.PUBLIC.vw_passport_rankings AS
+SELECT 
+*
+FROM SHPROD.PUBLIC.RANK_PASSPORT;
+
+
