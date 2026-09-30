@@ -1,0 +1,184 @@
+```yaml
+name: Passport Ranking CI/CD
+
+on:
+
+  # Deploy automatically to DEV
+  push:
+    branches:
+      - dev
+      - main
+
+  # Validate code when creating PR to main
+  pull_request:
+    branches:
+      - main
+
+
+jobs:
+
+  # ==========================================================
+  # CI - Validate repository
+  # ==========================================================
+
+  validate:
+    name: Validate SQL
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: List SQL files
+        run: |
+          echo "SQL files in repository:"
+          find sql -type f -name "*.sql" | sort
+
+      - name: Check SQL files exist
+        run: |
+          if [ ! -d "sql" ]; then
+            echo "SQL directory not found"
+            exit 1
+          fi
+
+          if [ -z "$(find sql -type f -name '*.sql')" ]; then
+            echo "No SQL files found"
+            exit 1
+          fi
+
+          echo "SQL validation passed"
+
+      - name: Check for hardcoded credentials
+        run: |
+          if grep -RniE \
+            "password\s*=|private_key\s*=|secret_key\s*=|access_key\s*=" \
+            sql .github \
+            --include="*.sql" \
+            --include="*.yml" \
+            --include="*.yaml"; then
+
+            echo "Possible credential detected"
+            exit 1
+          fi
+
+          echo "Credential check passed"
+
+
+  # ==========================================================
+  # DEV DEPLOYMENT
+  # ==========================================================
+
+  deploy-dev:
+    name: Deploy to DEV
+
+    needs: validate
+
+    if: github.event_name == 'push' &&
+        github.ref == 'refs/heads/dev'
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: DEV
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Snowflake CLI
+        uses: snowflakedb/snowflake-actions@v3
+
+      - name: Test Snowflake connection
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+        run: |
+          snow connection test -x
+
+      - name: Deploy SQL to DEV
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: PASSPORT_DEV
+          SNOWFLAKE_SCHEMA: PUBLIC
+        run: |
+
+          for file in $(find sql -type f -name "*.sql" | sort); do
+
+            echo "========================================"
+            echo "Deploying: $file"
+            echo "========================================"
+
+            snow sql \
+              -x \
+              -f "$file"
+
+          done
+
+
+  # ==========================================================
+  # PROD DEPLOYMENT
+  # ==========================================================
+
+  deploy-prod:
+    name: Deploy to PROD
+
+    needs: validate
+
+    if: github.event_name == 'push' &&
+        github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: PROD
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Snowflake CLI
+        uses: snowflakedb/snowflake-actions@v3
+
+      - name: Test Snowflake connection
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+        run: |
+          snow connection test -x
+
+      - name: Deploy SQL to PROD
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: PASSPORT_PROD
+          SNOWFLAKE_SCHEMA: PUBLIC
+        run: |
+
+          for file in $(find sql -type f -name "*.sql" | sort); do
+
+            echo "========================================"
+            echo "Deploying: $file"
+            echo "========================================"
+
+            snow sql \
+              -x \
+              -f "$file"
+
+          done
+```
