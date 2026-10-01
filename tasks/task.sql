@@ -2,8 +2,9 @@
 
 CREATE OR REPLACE TASK SHPROD.PUBLIC.LOAD_PASSPORT_JOB
     WAREHOUSE = 'COMPUTE_WH'
-    SCHEDULE = 'USING CRON 13 2 * * * Asia/Kolkata'
+    SCHEDULE = 'USING CRON 58 23 * * * Asia/Kolkata'
 AS
+EXECUTE IMMEDIATE $$
 BEGIN
     TRUNCATE TABLE SHPROD.PUBLIC.RANK_PASSPORT_RD;
     
@@ -12,9 +13,10 @@ BEGIN
         SELECT 
             ROW_NUMBER() OVER (ORDER BY s.$1), -- Generates 1, 2, 3... based on country name
             s.$1, s.$2, s.$3, s.$4 
-        FROM @loaddata/henleypassportindex.csv (FILE_FORMAT => SHPROD.PUBLIC.CSV_FORMAT) s
+        FROM @SHPROD.PUBLIC.LOADDATA/henleypassportindex.csv (FILE_FORMAT => SHPROD.PUBLIC.CSV_FORMAT) s
     );
 END;
+$$;
 
 
 --Runlog Task
@@ -24,6 +26,7 @@ CREATE OR REPLACE TASK SHPROD.PUBLIC.START_RUNLOG_JOB
     --SCHEDULE = 'USING CRON 10 17 * * * Asia/Kolkata'
     AFTER SHPROD.PUBLIC.LOAD_PASSPORT_JOB
 AS
+EXECUTE IMMEDIATE $$
 BEGIN
         -- 1️⃣ Insert the log entry
 INSERT INTO SHPROD.PUBLIC.RUNLOG (start_ts, status)
@@ -39,6 +42,7 @@ WHERE L.STATUS = 'STARTED'
 
 
 END;
+$$;
 
 
 
@@ -49,7 +53,7 @@ END;
 CREATE OR REPLACE TASK  SHPROD.PUBLIC.VALIDATE_PASSPORT_JOB
 AFTER SHPROD.PUBLIC.START_RUNLOG_JOB
 AS
-CALL sp_validate_passport();
+CALL SHPROD.PUBLIC.sp_validate_passport();
 
 
 
@@ -61,7 +65,7 @@ CALL sp_validate_passport();
 CREATE OR REPLACE TASK  SHPROD.PUBLIC.SCD_PASSPORT_JOB
 AFTER SHPROD.PUBLIC.VALIDATE_PASSPORT_JOB
 AS
-CALL sp_passport_scd();
+CALL SHPROD.PUBLIC.sp_passport_scd();
 
 
 --Close Runlog Task
@@ -69,6 +73,7 @@ CALL sp_passport_scd();
 CREATE OR REPLACE TASK SHPROD.PUBLIC.CLOSE_RUNLOG_JOB    
 AFTER SHPROD.PUBLIC.SCD_PASSPORT_JOB
 AS
+EXECUTE IMMEDIATE $$
 BEGIN
 
        
@@ -81,6 +86,7 @@ WHERE L.STATUS = 'STARTED'
   AND L.RUN_ID = E.RUN_ID;
 
 END;
+$$;
 
 
 
