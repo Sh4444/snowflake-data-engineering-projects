@@ -1,4 +1,3 @@
-```yaml
 name: Passport Ranking CI/CD
 
 on:
@@ -32,18 +31,33 @@ jobs:
 
       - name: List SQL files
         run: |
+          set -euo pipefail
+          SQL_DIRS=(scripts tables views procedures tasks)
+
           echo "SQL files in repository:"
-          find sql -type f -name "*.sql" | sort
+          for dir in "${SQL_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "Expected SQL directory not found: $dir"
+              exit 1
+            fi
+          done
+
+          find "${SQL_DIRS[@]}" -type f -name "*.sql" | sort
 
       - name: Check SQL files exist
         run: |
-          if [ ! -d "sql" ]; then
-            echo "SQL directory not found"
-            exit 1
-          fi
+          set -euo pipefail
+          SQL_DIRS=(scripts tables views procedures tasks)
 
-          if [ -z "$(find sql -type f -name '*.sql')" ]; then
-            echo "No SQL files found"
+          for dir in "${SQL_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "Expected SQL directory not found: $dir"
+              exit 1
+            fi
+          done
+
+          if [ -z "$(find "${SQL_DIRS[@]}" -type f -name '*.sql' -print -quit)" ]; then
+            echo "No SQL files found in expected SQL directories: ${SQL_DIRS[*]}"
             exit 1
           fi
 
@@ -51,9 +65,11 @@ jobs:
 
       - name: Check for hardcoded credentials
         run: |
+          SQL_DIRS=(scripts tables views procedures tasks)
+
           if grep -RniE \
             "password\s*=|private_key\s*=|secret_key\s*=|access_key\s*=" \
-            sql .github \
+            "${SQL_DIRS[@]}" .github \
             --include="*.sql" \
             --include="*.yml" \
             --include="*.yaml"; then
@@ -110,17 +126,26 @@ jobs:
           SNOWFLAKE_DATABASE: PASSPORT_DEV
           SNOWFLAKE_SCHEMA: PUBLIC
         run: |
+          set -euo pipefail
+          SQL_DIRS=(scripts tables views procedures tasks)
 
-          for file in $(find sql -type f -name "*.sql" | sort); do
+          for dir in "${SQL_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "Expected SQL directory not found: $dir"
+              exit 1
+            fi
+          done
 
-            echo "========================================"
-            echo "Deploying: $file"
-            echo "========================================"
+          for dir in "${SQL_DIRS[@]}"; do
+            while IFS= read -r file; do
+              echo "========================================"
+              echo "Deploying: $file"
+              echo "========================================"
 
-            snow sql \
-              -x \
-              -f "$file"
-
+              snow sql \
+                -x \
+                -f "$file"
+            done < <(find "$dir" -type f -name "*.sql" | sort)
           done
 
 
@@ -169,16 +194,24 @@ jobs:
           SNOWFLAKE_DATABASE: PASSPORT_PROD
           SNOWFLAKE_SCHEMA: PUBLIC
         run: |
+          set -euo pipefail
+          SQL_DIRS=(scripts tables views procedures tasks)
 
-          for file in $(find sql -type f -name "*.sql" | sort); do
-
-            echo "========================================"
-            echo "Deploying: $file"
-            echo "========================================"
-
-            snow sql \
-              -x \
-              -f "$file"
-
+          for dir in "${SQL_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "Expected SQL directory not found: $dir"
+              exit 1
+            fi
           done
-```
+
+          for dir in "${SQL_DIRS[@]}"; do
+            while IFS= read -r file; do
+              echo "========================================"
+              echo "Deploying: $file"
+              echo "========================================"
+
+              snow sql \
+                -x \
+                -f "$file"
+            done < <(find "$dir" -type f -name "*.sql" | sort)
+          done
