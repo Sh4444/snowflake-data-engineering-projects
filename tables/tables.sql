@@ -1,6 +1,7 @@
 --Database
 
-create database SHPROD;
+--create or replace database shprod;
+use SHPROD;
 
 --Target table
 
