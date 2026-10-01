@@ -135,9 +135,15 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
         run: |
+          if [ -n "${SNOWFLAKE_PAT:-}" ]; then
+            unset SNOWFLAKE_PASSWORD
+            export SNOWFLAKE_AUTHENTICATOR=oauth
+            export SNOWFLAKE_TOKEN="$SNOWFLAKE_PAT"
+          fi
           snow connection test -x
 
       - name: Deploy SQL to DEV
@@ -145,12 +151,18 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: SHPROD
           SNOWFLAKE_SCHEMA: PUBLIC
         run: |
           set -euo pipefail
+          if [ -n "${SNOWFLAKE_PAT:-}" ]; then
+            unset SNOWFLAKE_PASSWORD
+            export SNOWFLAKE_AUTHENTICATOR=oauth
+            export SNOWFLAKE_TOKEN="$SNOWFLAKE_PAT"
+          fi
           SQL_DIRS=(scripts tables views procedures tasks)
 
           for dir in "${SQL_DIRS[@]}"; do
@@ -212,9 +224,15 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
         run: |
+          if [ -n "${SNOWFLAKE_PAT:-}" ]; then
+            unset SNOWFLAKE_PASSWORD
+            export SNOWFLAKE_AUTHENTICATOR=oauth
+            export SNOWFLAKE_TOKEN="$SNOWFLAKE_PAT"
+          fi
           snow connection test -x
 
       - name: Deploy SQL to PROD
@@ -222,12 +240,18 @@ jobs:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_PAT: ${{ secrets.SNOWFLAKE_PAT }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: SHPROD
           SNOWFLAKE_SCHEMA: PUBLIC
         run: |
           set -euo pipefail
+          if [ -n "${SNOWFLAKE_PAT:-}" ]; then
+            unset SNOWFLAKE_PASSWORD
+            export SNOWFLAKE_AUTHENTICATOR=oauth
+            export SNOWFLAKE_TOKEN="$SNOWFLAKE_PAT"
+          fi
           SQL_DIRS=(scripts tables views procedures tasks)
 
           for dir in "${SQL_DIRS[@]}"; do
