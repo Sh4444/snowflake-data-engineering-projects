@@ -131,9 +131,9 @@ jobs:
         uses: snowflakedb/snowflake-actions@v3
 
       - name: Show runner public IP
-  run: |
-    ip=$(curl --fail --silent --show
-
+        run: |
+          ip=$(curl --fail --silent --show-error -4 https://api.ipify.org)
+          echo "Runner public IP: $ip"
       - name: Test Snowflake connection
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
