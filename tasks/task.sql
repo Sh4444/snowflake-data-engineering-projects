@@ -14,7 +14,9 @@ BEGIN
             ROW_NUMBER() OVER (ORDER BY s.$1), -- Generates 1, 2, 3... based on country name
             s.$1, s.$2, s.$3, s.$4 
         FROM @SHPROD.PUBLIC.LOADDATA/henleypassportindex.csv (FILE_FORMAT => SHPROD.PUBLIC.CSV_FORMAT) s
-    );
+    )
+    FORCE = TRUE;
+
 END;
 $$;
 
