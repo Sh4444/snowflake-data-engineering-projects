@@ -7,3 +7,14 @@ entities:
       - pyproject.toml
       - streamlit_app.py
       - .streamlit/config.toml
+    identifier:
+      database: SHPROD
+      schema: PUBLIC
+      name: PASSPORT_RANKING
+    title: passport_ranking
+    query_warehouse: COMPUTE_WH
+    compute_pool: SYSTEM_COMPUTE_POOL_CPU
+    run_mode: SpcsOnly
+    execute_as: OWNER
+    artifact_repositories:
+      - SNOWFLAKE.SNOWPARK.PYPI_SHARED_REPOSITORY

@@ -1,284 +1,331 @@
-# 🌍 Passport Ranking Data Engineering Project
+# 🌍 Passport Ranking — Snowflake Data Engineering Project
 
-A modern **Snowflake Data Engineering project** that processes passport ranking data over multiple years using an automated data pipeline, **SCD Type 2**, Snowpipe, Snowflake Tasks, and GitHub-based CI/CD.
+An end-to-end **Snowflake Data Engineering project** that processes yearly passport ranking data using a scheduled batch pipeline, data validation, **SCD Type 2**, Snowflake Tasks, and GitHub-based source control and CI/CD.
 
-The project is designed to demonstrate an end-to-end data engineering workflow from raw CSV ingestion to a production-ready target table and dashboard.
+The project demonstrates how raw CSV data can be loaded into Snowflake, transformed through staging, historized in a target table, and consumed through a Streamlit dashboard.
 
 ---
 
 ## 📌 Project Overview
 
-The Passport Ranking pipeline loads yearly passport ranking data into Snowflake and maintains historical changes using **Slowly Changing Dimension (SCD) Type 2**.
+The Passport Ranking pipeline processes passport ranking data by year.
 
-The pipeline supports:
+The solution uses a **batch processing architecture** where a scheduled Snowflake Task loads the source CSV into the Raw Data table, followed by transformation and SCD Type 2 processing.
 
-* Automated CSV ingestion
-* Raw data landing
+### Key capabilities
+
+* Batch CSV ingestion
+* Snowflake external/internal stage
+* Scheduled Snowflake Tasks
+* Raw → Staging → Target architecture
 * Data validation
-* Staging transformation
 * SCD Type 2 historical tracking
-* Snowpipe auto-ingestion
-* Snowflake Tasks for orchestration
-* Production target tables
+* Yearly passport ranking processing
+* Views for reporting
+* Streamlit dashboard
 * GitHub source control
 * DEV → PROD CI/CD
-* Dashboard-ready data
 
 ---
 
-## 🏗️ Architecture
+# 🏗️ Architecture
 
 ```text
-                    CSV Files
+                    CSV File
                        │
                        ▼
-                ┌─────────────┐
-                │   Snowpipe  │
-                └──────┬──────┘
+               ┌────────────────┐
+               │ Snowflake Stage│
+               └───────┬────────┘
+                       │
+                       │ Scheduled Batch
+                       ▼
+               ┌────────────────┐
+               │ Snowflake Task  │
+               └───────┬────────┘
+                       │
+                  TRUNCATE RD
                        │
                        ▼
-                ┌─────────────┐
-                │     RD      │
-                │ Raw Data    │
-                └──────┬──────┘
+               ┌────────────────┐
+               │      RD        │
+               │   Raw Data     │
+               └───────┬────────┘
                        │
                   Validation
                        │
                        ▼
-                ┌─────────────┐
-                │     STG     │
-                │  Staging    │
-                └──────┬──────┘
+               ┌────────────────┐
+               │      STG       │
+               │    Staging     │
+               └───────┬────────┘
                        │
-                 SCD Type 2
-                       │
-                       ▼
-                ┌─────────────┐
-                │     TRG     │
-                │   Target    │
-                └──────┬──────┘
+                  SCD Type 2
                        │
                        ▼
-                 Dashboard
+               ┌────────────────┐
+               │      TRG       │
+               │     Target     │
+               └───────┬────────┘
+                       │
+                       ▼
+               ┌────────────────┐
+               │     Views      │
+               └───────┬────────┘
+                       │
+                       ▼
+               ┌────────────────┐
+               │    Streamlit   │
+               │    Dashboard   │
+               └────────────────┘
 ```
 
 ---
 
-## 🔄 Data Flow
+# 🔄 Batch Processing Flow
+
+The pipeline runs as a scheduled batch process.
 
 ```text
 CSV
- │
- ▼
+ ↓
 Snowflake Stage
- │
- ▼
-Snowpipe
- │
- ▼
-RANK_PASSPORT_RD
- │
- ▼
+ ↓
+Scheduled Task
+ ↓
+TRUNCATE RD
+ ↓
+COPY INTO RD
+ ↓
 Validation
- │
- ▼
-RANK_PASSPORT_STG
- │
- ▼
-SCD Type 2 Processing
- │
- ▼
-RANK_PASSPORT_TRG
- │
- ▼
+ ↓
+STG
+ ↓
+SCD Type 2
+ ↓
+TRG
+ ↓
+Views
+ ↓
 Dashboard
 ```
 
----
-
-## 🗄️ Snowflake Data Layers
-
-### RD — Raw Data
-
-`RANK_PASSPORT_RD`
-
-Contains the data exactly as received from the source CSV files.
-
-Purpose:
-
-* Raw data landing
-* Source data preservation
-* Initial validation
+The Raw Data table is refreshed for each batch before the latest source data is loaded.
 
 ---
 
-### STG — Staging
+# 🗄️ Data Architecture
 
-`RANK_PASSPORT_STG`
+The project follows a three-layer data architecture:
 
-Used to prepare and validate data before loading into the target.
+```text
+RD → STG → TRG
+```
 
-Typical validations include:
+## 1. RD — Raw Data
 
-* Country name validation
-* Duplicate checking
-* Required-field validation
-* Data type validation
-* Ranking validation
-
----
-
-### TRG — Target
-
-`RANK_PASSPORT_TRG`
-
-Contains the final historical passport ranking data.
-
-The target table maintains historical records using SCD Type 2.
+The Raw Data layer stores the current batch of source data.
 
 Example:
 
 ```text
-COUNTRY_NAME | RANK | STRT_DT   | END_DT
--------------|------|-----------|-----------
-Country A    | 10   | 2024-01-01| 2024-12-31
-Country A    | 8    | 2025-01-01| 9999-12-31
+RANK_PASSPORT_RD
 ```
 
-This allows historical changes to be preserved instead of overwriting previous records.
+Responsibilities:
+
+* Receive source CSV data
+* Preserve the source structure
+* Provide the input for downstream processing
+
+The batch task truncates the RD table before loading the current source file.
+
+---
+
+## 2. STG — Staging
+
+The Staging layer prepares the data for the target table.
+
+Example:
+
+```text
+RANK_PASSPORT_STG
+```
+
+Responsibilities:
+
+* Data validation
+* Transformation
+* Duplicate checks
+* Required-field validation
+* Preparation for SCD Type 2 processing
+
+---
+
+## 3. TRG — Target
+
+The Target layer contains the final historical passport ranking data.
+
+Example:
+
+```text
+RANK_PASSPORT_TRG
+```
+
+The target table maintains historical changes using **SCD Type 2**.
 
 ---
 
 # 🔁 SCD Type 2
 
-The project uses **Slowly Changing Dimension Type 2** to maintain historical ranking changes.
+The project uses **Slowly Changing Dimension Type 2** to preserve historical ranking changes.
 
-When an existing country's ranking changes:
-
-1. Existing active record is end-dated.
-2. New ranking record is inserted.
-3. New record becomes the active record.
-
-Conceptually:
+When a country's ranking changes:
 
 ```text
-Existing Record
-      │
-      ▼
-End Date Old Record
-      │
-      ▼
-Insert New Record
-      │
-      ▼
-New Active Record
+Existing Active Record
+        │
+        ▼
+End-date old record
+        │
+        ▼
+Insert new ranking
+        │
+        ▼
+New active record
 ```
-
-Active records use an open-ended `END_DT`.
-
----
-
-# 🚀 Snowpipe
-
-Snowpipe is used for automated ingestion of new CSV files.
-
-```text
-New CSV
-   │
-   ▼
-Cloud Storage / Stage
-   │
-   ▼
-Snowpipe
-   │
-   ▼
-Raw Table
-```
-
-This eliminates the need for manually running `COPY INTO` whenever a new file arrives.
-
----
-
-# ⏱️ Snowflake Tasks
-
-Snowflake Tasks are used to orchestrate the pipeline.
 
 Example:
 
 ```text
-Snowpipe
-   │
-   ▼
-Validation
-   │
-   ▼
-STG Load
-   │
-   ▼
-SCD Type 2
-   │
-   ▼
-Target
+COUNTRY | RANK | STRT_DT   | END_DT
+--------|------|-----------|-----------
+India   | 80   | 2024-01-01| 2024-12-31
+India   | 85   | 2025-01-01| 9999-12-31
 ```
 
-Tasks can be scheduled or triggered based on pipeline requirements.
+This allows historical ranking changes to be retained rather than overwritten.
+
+---
+
+# ⏱️ Snowflake Task
+
+The batch pipeline is orchestrated using a scheduled Snowflake Task.
+
+Example schedule:
+
+```text
+00:59 Asia/Kolkata
+```
+
+The task performs the batch ingestion process:
+
+```text
+TRUNCATE RD
+     ↓
+COPY CSV → RD
+     ↓
+Validation / Transformation
+     ↓
+STG
+     ↓
+SCD Type 2
+     ↓
+TRG
+```
+
+Example task:
+
+```sql
+CREATE OR REPLACE TASK SHPROD.PUBLIC.LOAD_PASSPORT_JOB
+    WAREHOUSE = 'COMPUTE_WH'
+    SCHEDULE = 'USING CRON 59 0 * * * Asia/Kolkata'
+AS
+...
+```
 
 ---
 
 # 📂 Repository Structure
 
 ```text
-passport-ranking/
+snowflake-data-engineering-projects/
 │
 ├── .github/
 │   └── workflows/
 │       └── snowflake-cicd.yml
 │
-├── sql/
-│   ├── 01_database_schema.sql
-│   ├── 02_tables.sql
-│   ├── 03_file_formats_stages.sql
-│   ├── 04_pipes.sql
-│   ├── 05_procedures.sql
-│   ├── 06_tasks.sql
-│   └── 07_views.sql
+├── tables/
+│   └── tables.sql
 │
-├── dashboard/
+├── scripts/
+│   └── fileformat.sql
+│   └── stage.sql
+├── procedures/
+│   └── pvt.sql
+│   └── scd.sql
+├── tasks/
+│   └── task.sql
 │
+├── views/
+│   └── views.sql
+│
+├── streamlit/
+│   └── passport_ranking/
+│       └── pyproject.toml
+│       └── snowflake.yml
+│       └── streamlit_app.py    
+│
+├── docs/
+│   └── passport_ranking_document.docx
+│   └── passport_ranking_document.ppt
 └── README.md
 ```
 
-### SQL Deployment Order
+The repository separates Snowflake objects by object type while keeping the project organized and version-controlled.
 
-The SQL files are executed in the following order:
+---
+
+# 🧱 Snowflake Objects
+
+The project contains the following Snowflake components:
+
+| Object      | Purpose                             |
+| ----------- | ----------------------------------- |
+| Tables      | RD, STG and TRG data layers         |
+| Stage       | Source CSV landing                  |
+| File Format | CSV parsing configuration           |
+| Tasks       | Batch orchestration                 |
+| Procedures  | Transformation/business logic       |
+| Views       | Reporting and dashboard consumption |
+| Streamlit   | Data visualization                  |
+
+---
+
+# 📊 Streamlit Dashboard
+
+The processed target data is exposed through a Streamlit dashboard.
+
+The dashboard provides insights such as:
+
+* Passport ranking by year
+* Country ranking
+* Ranking changes
+* Historical trends
+* Country comparisons
+* Passport access information
+
+Dashboard location:
 
 ```text
-01_database_schema.sql
-        ↓
-02_tables.sql
-        ↓
-03_file_formats_stages.sql
-        ↓
-04_pipes.sql
-        ↓
-05_procedures.sql
-        ↓
-06_tasks.sql
-        ↓
-07_views.sql
-```
-
-All table definitions are maintained together in:
-
-```text
-sql/02_tables.sql
+streamlit/passport_ranking/
 ```
 
 ---
 
 # 🔀 Git Branching Strategy
 
-The project uses two main branches:
+The project uses two primary branches:
 
 ```text
 feature/*
@@ -291,17 +338,17 @@ feature/*
    main
 ```
 
-### DEV
+### `dev`
 
-The `dev` branch is used for development and testing.
+Development branch.
 
-Changes pushed to `dev` are deployed to the Snowflake DEV environment.
+Changes are tested in the Snowflake DEV environment.
 
-### MAIN
+### `main`
 
-The `main` branch represents production-ready code.
+Production branch.
 
-Changes are promoted from:
+Only tested changes are promoted from:
 
 ```text
 dev → main
@@ -309,13 +356,11 @@ dev → main
 
 through a Pull Request.
 
-Changes merged into `main` are deployed to Snowflake PROD.
-
 ---
 
-# ⚙️ CI/CD Pipeline
+# ⚙️ CI/CD
 
-GitHub Actions is used to automate deployment.
+GitHub Actions is used for CI/CD automation.
 
 ```text
 Developer
@@ -346,24 +391,35 @@ GitHub Actions
 Snowflake PROD
 ```
 
-The CI/CD pipeline performs:
+### DEV deployment
 
-* SQL validation
-* Credential checks
-* Snowflake connection validation
-* SQL deployment
-* DEV deployment
-* PROD deployment
+A push to:
+
+```text
+dev
+```
+
+triggers the CI/CD pipeline and deploys the Snowflake objects to DEV.
+
+### PROD deployment
+
+After testing, a Pull Request is created:
+
+```text
+dev → main
+```
+
+After approval and merge, GitHub Actions deploys the production version to Snowflake PROD.
 
 ---
 
 # 🔐 Security
 
-Credentials are not stored in the repository.
+Sensitive credentials are not stored in the repository.
 
-GitHub Actions uses:
+GitHub Actions uses GitHub Secrets for authentication.
 
-### GitHub Secrets
+### Secrets
 
 ```text
 SNOWFLAKE_ACCOUNT
@@ -371,93 +427,82 @@ SNOWFLAKE_USER
 SNOWFLAKE_PAT
 ```
 
-### GitHub Variables
+### Variables
 
 ```text
 SNOWFLAKE_ROLE
 SNOWFLAKE_WAREHOUSE
 ```
 
-Sensitive credentials should never be committed to GitHub.
+Credentials should never be committed directly into SQL scripts, YAML files, or source code.
 
 ---
 
 # 🧪 Data Validation
 
-The pipeline validates incoming data before processing.
+The pipeline performs validation before data reaches the target layer.
 
 Examples:
 
 ```text
 ✓ Country name cannot be NULL
-✓ Duplicate countries are rejected
-✓ Required fields must be populated
-✓ Ranking values must be valid
-✓ Data types must match the target structure
+✓ Duplicate records can be identified
+✓ Required fields are validated
+✓ Ranking values are validated
+✓ Source structure is checked
+✓ Target data is maintained historically
 ```
 
-Invalid records can be rejected before entering the target table.
-
----
-
-# 📊 Dashboard
-
-The final target data can be consumed by a dashboard for analysis such as:
-
-* Passport ranking by year
-* Country ranking changes
-* Historical ranking trends
-* Country-level comparisons
-* Top-ranked passports
-* Ranking movement over time
+Invalid data can be rejected before the SCD Type 2 process.
 
 ---
 
 # 🛠️ Technology Stack
 
-| Technology      | Purpose                  |
-| --------------- | ------------------------ |
-| Snowflake       | Cloud Data Warehouse     |
-| Snowpipe        | Automated ingestion      |
-| Snowflake Tasks | Pipeline orchestration   |
-| Snowflake SQL   | Transformation           |
-| SCD Type 2      | Historical data tracking |
-| GitHub          | Source control           |
-| GitHub Actions  | CI/CD                    |
-| CSV             | Source data              |
-| Dashboard       | Data visualization       |
+| Technology      | Purpose              |
+| --------------- | -------------------- |
+| Snowflake       | Cloud Data Warehouse |
+| Snowflake SQL   | Data transformation  |
+| Snowflake Tasks | Batch orchestration  |
+| Snowflake Stage | File landing         |
+| SCD Type 2      | Historical tracking  |
+| GitHub          | Source control       |
+| GitHub Actions  | CI/CD                |
+| Streamlit       | Dashboard            |
+| CSV             | Source data          |
 
 ---
 
-# 🎯 Key Features
+# 🎯 Project Highlights
 
-* End-to-end Snowflake data pipeline
-* Automated file ingestion
-* Raw → Staging → Target architecture
+* End-to-end Snowflake data engineering pipeline
+* Batch processing architecture
+* Raw → Staging → Target data layers
 * SCD Type 2 implementation
-* Historical passport ranking tracking
+* Scheduled Snowflake Task
 * Data quality validation
-* Snowpipe automation
-* Snowflake Task orchestration
-* Git-based development
+* Historical passport ranking tracking
+* GitHub source control
 * DEV and PROD environments
-* Automated CI/CD deployment
+* Automated CI/CD
+* Streamlit dashboard
 
 ---
 
 # 🚀 Future Enhancements
 
-Potential future improvements include:
+Potential improvements include:
 
-* Automated data-quality testing
-* Key-pair or OIDC authentication
+* Automated data-quality test framework
+* Snowflake key-pair/OIDC authentication
 * CI/CD deployment rollback
-* Dynamic SQL deployment framework
-* Monitoring and alerting
-* Pipeline execution logging
+* Pipeline monitoring and alerting
+* Batch execution logging
+* Error-handling framework
+* Automated failure notifications
 * Additional dashboard analytics
-* Infrastructure-as-code
-* Automated documentation generation
+* Infrastructure-as-Code
+* Automated documentation
 
 ---
 
@@ -465,4 +510,4 @@ Potential future improvements include:
 
 **Passport Ranking Data Engineering Project**
 
-Built using Snowflake, SQL, Snowpipe, Snowflake Tasks, SCD Type 2, GitHub, and GitHub Actions.
+Built with **Snowflake, SQL, Snowflake Tasks, SCD Type 2, GitHub, GitHub Actions, and Streamlit**.

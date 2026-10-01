@@ -130,6 +130,10 @@ jobs:
       - name: Install Snowflake CLI
         uses: snowflakedb/snowflake-actions@v3
 
+      - name: Show runner public IP
+  run: |
+    ip=$(curl --fail --silent --show
+
       - name: Test Snowflake connection
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
