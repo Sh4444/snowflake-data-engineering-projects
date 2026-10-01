@@ -1,7 +1,6 @@
 --Database
 
---create or replace database shprod;
-use SHPROD;
+CREATE DATABASE IF NOT EXISTS SHPROD;
 
 --Target table
 
@@ -55,7 +54,7 @@ CREATE OR REPLACE TABLE SHPROD.PUBLIC.RANK_PASSPORT_ERR (
 
 --Audit Table
 
-CREATE TABLE SHPROD.PUBLIC.EXECUTION_LOGS (
+CREATE TABLE IF NOT EXISTS SHPROD.PUBLIC.EXECUTION_LOGS (
     log_id INT IDENTITY(1,1) PRIMARY KEY,
     run_id INT,                  -- Link to your batch/run_id
     procedure_name VARCHAR(100),

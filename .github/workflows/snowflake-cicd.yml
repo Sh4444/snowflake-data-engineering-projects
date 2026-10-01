@@ -80,6 +80,30 @@ jobs:
 
           echo "Credential check passed"
 
+      - name: Validate task block delimiters
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          invalid = []
+          pattern = re.compile(r'CREATE\s+OR\s+REPLACE\s+TASK[\s\S]*?\bAS\s+BEGIN\b', re.IGNORECASE)
+
+          for path in sorted(pathlib.Path("tasks").glob("*.sql")):
+              content = path.read_text(encoding="utf-8")
+              if pattern.search(content):
+                  invalid.append(str(path))
+
+          if invalid:
+              print("Task files using `AS BEGIN` blocks must wrap bodies for file execution (for example EXECUTE IMMEDIATE $$ ... $$):")
+              for file in invalid:
+                  print(f" - {file}")
+              sys.exit(1)
+
+          print("Task delimiter validation passed")
+          PY
+
 
   # ==========================================================
   # DEV DEPLOYMENT
@@ -142,9 +166,18 @@ jobs:
               echo "Deploying: $file"
               echo "========================================"
 
+              deploy_file="$(mktemp)"
+              {
+                echo "USE DATABASE SHPROD;"
+                echo "USE SCHEMA PUBLIC;"
+                cat "$file"
+              } > "$deploy_file"
+
               snow sql \
                 -x \
-                -f "$file"
+                -f "$deploy_file"
+
+              rm -f "$deploy_file"
             done < <(find "$dir" -type f -name "*.sql" | sort)
           done
 
@@ -210,8 +243,17 @@ jobs:
               echo "Deploying: $file"
               echo "========================================"
 
+              deploy_file="$(mktemp)"
+              {
+                echo "USE DATABASE SHPROD;"
+                echo "USE SCHEMA PUBLIC;"
+                cat "$file"
+              } > "$deploy_file"
+
               snow sql \
                 -x \
-                -f "$file"
+                -f "$deploy_file"
+
+              rm -f "$deploy_file"
             done < <(find "$dir" -type f -name "*.sql" | sort)
           done
