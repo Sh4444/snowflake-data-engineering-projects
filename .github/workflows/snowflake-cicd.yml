@@ -151,7 +151,7 @@ jobs:
           SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
           SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: SHPROD
+          SNOWFLAKE_DATABASE: SHDEV
           SNOWFLAKE_SCHEMA: PUBLIC
         run: |
           set -euo pipefail
@@ -172,7 +172,7 @@ jobs:
 
               deploy_file="$(mktemp)"
               {
-                echo "USE DATABASE SHPROD;"
+                echo "USE DATABASE SHDEV;"
                 echo "USE SCHEMA PUBLIC;"
                 cat "$file"
               } > "$deploy_file"
