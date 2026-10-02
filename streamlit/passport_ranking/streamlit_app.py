@@ -16,7 +16,7 @@ session = get_active_session()
 # Load real data
 query = """
 SELECT COUNTRY_NAME, RNK, ACCESS_NO_COUNTRY, YRS
-FROM SHPROD.PUBLIC.RANK_PASSPORT ORDER BY RNK;
+FROM RANK_PASSPORT ORDER BY RNK;
 
 """
 
