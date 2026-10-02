@@ -31,7 +31,7 @@ AS
 EXECUTE IMMEDIATE $$
 BEGIN
         -- 1️⃣ Insert the log entry
-INSERT RUNLOG (start_ts, status)
+INSERT INTO RUNLOG (start_ts, status)
 VALUES (CURRENT_TIMESTAMP, 'STARTED');
 
 -- 2️⃣ Update the yrs column
