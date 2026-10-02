@@ -375,7 +375,7 @@ GitHub Actions uses GitHub Secrets for authentication.
 ```text
 SNOWFLAKE_ACCOUNT
 SNOWFLAKE_USER
-SNOWFLAKE_PAT
+SNOWFLAKE_PASSWORD
 ```
 
 ### Variables
