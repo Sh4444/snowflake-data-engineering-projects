@@ -11,23 +11,23 @@ DECLARE
     v_total_cnt INT;
 BEGIN
     -- 1️⃣ Get Iterative Run ID
-    v_run_id := (SELECT COALESCE(MAX(run_id), 0) FROM SHPROD.PUBLIC.RUNLOG);
-    v_total_cnt := (SELECT COALESCE(MAX(access_no_country::INT),0) FROM SHPROD.PUBLIC.RANK_PASSPORT_RD);
+    v_run_id := (SELECT COALESCE(MAX(run_id), 0) FROM RUNLOG);
+    v_total_cnt := (SELECT COALESCE(MAX(access_no_country::INT),0) FROM RANK_PASSPORT_RD);
 
     -- 2️⃣ Log Start
-    INSERT INTO SHPROD.PUBLIC.EXECUTION_LOGS (run_id, procedure_name, step_description, status)
+    INSERT INTO EXECUTION_LOGS (run_id, procedure_name, step_description, status)
     VALUES (:v_run_id, ''sp_passport_scd'', ''SCD Type 2 Process Started'', ''STARTED'');
 
     -- 3️⃣ Expire Records
-    UPDATE SHPROD.PUBLIC.RANK_PASSPORT t
+    UPDATE RANK_PASSPORT t
     SET end_dt = CURRENT_DATE - 1
-    FROM SHPROD.PUBLIC.RANK_PASSPORT_STG s
+    FROM RANK_PASSPORT_STG s
     WHERE t.country_name = s.cntry AND t.end_dt = ''9999-12-31'' AND s.yr > t.yrs;
     
     v_rowsd := SQLROWCOUNT; -- Capture rows updated
 
     -- 4️⃣ Insert Records
-     INSERT INTO SHPROD.PUBLIC.RANK_PASSPORT (
+     INSERT INTO RANK_PASSPORT (
         country_name,
         rnk,
         yrs,
@@ -47,10 +47,10 @@ BEGIN
          s.access_no_country,
          :v_total_cnt-s.access_no_country
 
-    FROM SHPROD.PUBLIC.RANK_PASSPORT_STG s
+    FROM RANK_PASSPORT_STG s
     WHERE NOT EXISTS (
         SELECT 1 
-        FROM SHPROD.PUBLIC.RANK_PASSPORT t 
+        FROM RANK_PASSPORT t 
         WHERE t.country_name = s.cntry 
           AND t.yrs = s.yr
           AND t.end_dt = ''9999-12-31''
@@ -61,7 +61,7 @@ BEGIN
 
 
     -- 5️⃣ Log Success
-    UPDATE SHPROD.PUBLIC.EXECUTION_LOGS
+    UPDATE EXECUTION_LOGS
     SET status = ''SUCCESS'',
         end_ts = CURRENT_TIMESTAMP(),
         rows_affected = :v_rows,
@@ -74,7 +74,7 @@ EXCEPTION
     WHEN OTHER THEN
         -- 6️⃣ Log Failure
 
-        UPDATE SHPROD.PUBLIC.EXECUTION_LOGS
+        UPDATE EXECUTION_LOGS
         SET status = ''FAILED'',
         end_ts = CURRENT_TIMESTAMP(),
         rows_affected = :v_rows,
