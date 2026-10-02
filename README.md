@@ -30,56 +30,7 @@ The solution uses a **batch processing architecture** where a scheduled Snowflak
 
 # 🏗️ Architecture
 
-```text
-                    CSV File
-                       │
-                       ▼
-               ┌────────────────┐
-               │ Snowflake Stage│
-               └───────┬────────┘
-                       │
-                       │ Scheduled Batch
-                       ▼
-               ┌────────────────┐
-               │ Snowflake Task  │
-               └───────┬────────┘
-                       │
-                  TRUNCATE RD
-                       │
-                       ▼
-               ┌────────────────┐
-               │      RD        │
-               │   Raw Data     │
-               └───────┬────────┘
-                       │
-                  Validation
-                       │
-                       ▼
-               ┌────────────────┐
-               │      STG       │
-               │    Staging     │
-               └───────┬────────┘
-                       │
-                  SCD Type 2
-                       │
-                       ▼
-               ┌────────────────┐
-               │      TRG       │
-               │     Target     │
-               └───────┬────────┘
-                       │
-                       ▼
-               ┌────────────────┐
-               │     Views      │
-               └───────┬────────┘
-                       │
-                       ▼
-               ┌────────────────┐
-               │    Streamlit   │
-               │    Dashboard   │
-               └────────────────┘
-```
-
+![snowflake-data-engineering-projects](docs/Passport_Ranking_Architecture.png)
 ---
 
 # 🔄 Batch Processing Flow
